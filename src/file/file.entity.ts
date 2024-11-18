@@ -1,7 +1,7 @@
 import { BaseEntity } from 'src/common/base_entity';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
-@Entity('file')
+@Entity('File')
 export class File extends BaseEntity {
   @Column()
   name: string;

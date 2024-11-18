@@ -4,7 +4,7 @@ import { ApiProperty } from '@nestjs/swagger';
 import { Role } from 'src/common/decorator/role';
 import { IsOptional } from 'class-validator';
 
-@Entity('user')
+@Entity('User')
 export class User extends BaseEntity {
   @Column({
     type: 'varchar',
@@ -25,4 +25,7 @@ export class User extends BaseEntity {
   })
   @IsOptional()
   authority_group: Role;
+
+  @Column({ type: 'int', default: 0 })
+  available_pages: number;
 }

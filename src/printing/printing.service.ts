@@ -3,9 +3,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
 import 'dotenv/config';
-import { Printer } from './printing.entity';
+import { Printer, PrintJob } from './printing.entity';
 import { PrinterCreateDto } from './dtos/printerDtos/printer.create.dto';
 import { PrinterSearchDto } from './dtos/printerDtos/printer.search.dto';
+import { PrintJobCreateDto } from './dtos/printjobDtos/printjob.create.dto';
+import { PrintJobSearchDto } from './dtos/printjobDtos/printjob.search.dto';
+import { User } from 'src/user/user.entity';
+import { File } from 'src/file/file.entity';
 
 @Injectable()
 export class PrinterService {
@@ -61,5 +65,104 @@ export class PrinterService {
     } finally {
       await queryRunner.release();
     }
+  }
+}
+
+export class PrintJobService {
+  constructor(
+    @InjectRepository(PrintJob)
+    private readonly printjobRepo: Repository<PrintJob>,
+
+    @InjectRepository(Printer)
+    private readonly printerRepo: Repository<Printer>,
+
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
+
+    @InjectRepository(File)
+    private readonly fileRepo: Repository<File>,
+  ) {}
+
+  async createPrintJob(printjob: PrintJobCreateDto): Promise<PrintJob> {
+    const user = await this.userRepo.findOne({
+      where: { id: printjob.user_id },
+    });
+    if (!user) {
+      throw new BadRequestException(
+        `user with id ${printjob.user_id} not found`,
+      );
+    }
+
+    const printer = await this.printerRepo.findOne({
+      where: { id: printjob.printer_id },
+    });
+    if (!printer) {
+      throw new BadRequestException(
+        `printer with id ${printjob.printer_id} not found`,
+      );
+    }
+
+    const file = await this.fileRepo.findOne({
+      where: { id: printjob.file_id },
+    });
+    if (!file) {
+      throw new BadRequestException(
+        `file with id ${printjob.file_id} not found`,
+      );
+    }
+
+    return this.printjobRepo.save({
+      page_size: printjob.page_size,
+      num_pages: printjob.num_pages,
+      duplex: printjob.duplex,
+      file: file,
+      user: user,
+      printer: printer,
+    });
+  }
+
+  async findOne(id: string): Promise<PrintJob> {
+    const printJob = await this.printjobRepo.findOne({
+      where: { id: id },
+      relations: ['file', 'user', 'printer'],
+    });
+
+    if (!printJob) {
+      throw new BadRequestException(`printjob with id ${id} not found`);
+    }
+    return printJob;
+  }
+
+  async search(data: PrintJobSearchDto): Promise<PrintJob[]> {
+    const query = this.printjobRepo.createQueryBuilder('printJob');
+
+    query
+      .leftJoinAndSelect('printJob.file', 'file')
+      .leftJoinAndSelect('printJob.user', 'user')
+      .leftJoinAndSelect('printJob.printer', 'printer');
+
+    // Add filters dynamically based on the query DTO
+    if (data.user_id) {
+      query.andWhere('printJob.user.id = :user_id', { user_id: data.user_id });
+    }
+
+    if (data.printer_id) {
+      query.andWhere('printJob.printer.id = :printer_id', {
+        printer_id: data.printer_id,
+      });
+    }
+
+    if (data.file_id) {
+      query.andWhere('printJob.file.id = :file_id', { file_id: data.file_id });
+    }
+
+    if (data.print_status !== undefined) {
+      query.andWhere('printJob.print_status = :print_status', {
+        print_status: data.print_status,
+      });
+    }
+
+    // Execute the query and return results
+    return query.getMany();
   }
 }

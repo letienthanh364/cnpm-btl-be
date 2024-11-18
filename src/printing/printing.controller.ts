@@ -7,10 +7,13 @@ import {
   Post,
   Query,
 } from '@nestjs/common';
-import { PrinterService } from './printing.service';
+import { PrinterService, PrintJobService } from './printing.service';
 import { PrinterCreateDto } from './dtos/printerDtos/printer.create.dto';
-import { Printer } from './printing.entity';
+import { Printer, PrintJob } from './printing.entity';
 import { PrinterSearchDto } from './dtos/printerDtos/printer.search.dto';
+import { PrintJobCreateDto } from './dtos/printjobDtos/printjob.create.dto';
+import { PrintJobStatus } from 'src/common/decorator/printjob_status';
+import { PrintJobSearchDto } from './dtos/printjobDtos/printjob.search.dto';
 
 @Controller('printer')
 export class PrinterController {
@@ -42,5 +45,37 @@ export class PrinterController {
     };
 
     return this.printerService.search(searchDto);
+  }
+}
+
+@Controller('printjob')
+export class PrintJobController {
+  constructor(private readonly printJobService: PrintJobService) {}
+
+  @Post('')
+  async create(@Body() printjob: PrintJobCreateDto) {
+    return this.printJobService.createPrintJob(printjob);
+  }
+
+  @Get(':id')
+  async findOne(@Param('id') id: string): Promise<PrintJob> {
+    return this.printJobService.findOne(id);
+  }
+
+  @Get('')
+  async search(
+    @Query('user_id') userId?: string,
+    @Query('file_id') fileId?: string,
+    @Query('printer_id') printerId?: string,
+    @Query('print_status') printStatus?: PrintJobStatus,
+  ): Promise<PrintJob[]> {
+    const searchDto: PrintJobSearchDto = {
+      user_id: userId,
+      file_id: fileId,
+      printer_id: printerId,
+      print_status: printStatus,
+    };
+
+    return this.printJobService.search(searchDto);
   }
 }
