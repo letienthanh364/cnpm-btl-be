@@ -13,15 +13,15 @@ import {
 
 @Entity()
 export class BaseEntity {
-  @ObjectIdColumn() // Primary key for MongoDB
-  _id: string;
+  // @ObjectIdColumn() // Primary key for MongoDB
+  // _id: string;
 
   @ApiProperty({
     description: 'The unique identifier for the entity',
     example: 'c9b1d0ae-d6f7-11ea-87d0-0242ac130003',
   })
-  @PrimaryGeneratedColumn()
-  id: string = uuidv4(); // Set the default UUID for MongoDB
+  @PrimaryGeneratedColumn('uuid')
+  id: string;
 
   @ApiProperty({
     description: 'The date when the entity was created',

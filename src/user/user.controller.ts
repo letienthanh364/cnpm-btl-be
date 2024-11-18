@@ -26,7 +26,7 @@ export class UserController {
   async register(@Body() users: UserCreateDto[]) {
     const newUsers = await this.userService.createMultipleUsers(users);
     return newUsers.map((user) => {
-      const { _id, password, ...res } = user;
+      const { password, ...res } = user;
       return res;
     });
   }
