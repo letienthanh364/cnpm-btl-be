@@ -1,28 +1,23 @@
 import { Column, Entity } from 'typeorm';
 import { BaseEntity } from '../common/base_entity';
-import { ApiProperty } from '@nestjs/swagger';
-import { Role } from 'src/common/decorator/role';
 import { IsOptional } from 'class-validator';
+import { PrinterStatus } from 'src/common/decorator/printer_status';
 
-@Entity('user')
-export class User extends BaseEntity {
+@Entity('printer')
+export class Printer extends BaseEntity {
   @Column({
     type: 'varchar',
   })
-  name: string;
+  location: string;
 
   @Column({ type: 'varchar', unique: true })
-  username: string;
+  printer_code: string;
 
-  @Column({ type: 'varchar' })
-  password: string;
-
-  @ApiProperty({ description: 'The role of the user', enum: Role })
   @Column({
     type: 'enum',
-    enum: Role,
-    default: Role.User,
+    enum: PrinterStatus,
+    default: PrinterStatus.Available,
   })
   @IsOptional()
-  authority_group: Role;
+  status: PrinterStatus;
 }
