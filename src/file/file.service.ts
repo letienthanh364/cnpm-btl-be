@@ -1,8 +1,9 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { File } from './file.entity';
 import { GoogleDriveService } from 'src/google-drive.service';
+import { FileSearchDto } from './dtos/file.search.dto';
 
 @Injectable()
 export class FileService {
@@ -25,7 +26,47 @@ export class FileService {
     return this.fileRepository.save(fileEntity);
   }
 
+  async search(data: FileSearchDto): Promise<File[]> {
+    const query = this.fileRepository.createQueryBuilder('file');
+
+    if (data.name) {
+      query.andWhere('file.name = :file_name', {
+        file_name: data.name,
+      });
+    }
+
+    const res = await query.getMany();
+    return res;
+  }
+
   async getFile(fileId: string): Promise<string> {
+    return `https://drive.google.com/uc?id=${fileId}`;
+  }
+
+  async downloadFile(fileId: string): Promise<string> {
     return `https://drive.google.com/uc?id=${fileId}&export=download`;
+  }
+
+  async deleteFile(fileId: string): Promise<void> {
+    // Find the file metadata in the database
+    const file = await this.fileRepository.findOne({ where: { id: fileId } });
+    if (!file) {
+      throw new NotFoundException(`file not found`);
+    }
+
+    // Extract the fileId from the file.path (Google Drive URL)
+    const match = file.path.match(/id=([a-zA-Z0-9_-]+)/);
+    if (!match || !match[1]) {
+      throw new NotFoundException(
+        `Invalid Google Drive file URL: ${file.path}`,
+      );
+    }
+    const extractedFileId = match[1];
+
+    // Delete the file from Google Drive
+    await this.googleDriveService.deleteFile(extractedFileId);
+
+    // Delete the metadata from the database
+    await this.fileRepository.remove(file);
   }
 }

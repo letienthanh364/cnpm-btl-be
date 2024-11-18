@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { BadRequestException, Injectable } from '@nestjs/common';
 import { google } from 'googleapis';
 import { Readable } from 'stream';
 
@@ -62,5 +62,33 @@ export class GoogleDriveService {
 
   async getFileUrl(fileId: string): Promise<string> {
     return `https://drive.google.com/uc?id=${fileId}&export=download`;
+  }
+
+  async deleteFile(fileId: string): Promise<void> {
+    try {
+      await this.drive.files.delete({ fileId });
+      console.log(`File with ID ${fileId} deleted from Google Drive.`);
+    } catch (error) {
+      console.error(
+        `Failed to delete file from Google Drive: ${error.message}`,
+      );
+      throw error;
+    }
+  }
+
+  async listFiles(): Promise<any[]> {
+    try {
+      const response = await this.drive.files.list({
+        pageSize: 100, // Adjust as needed
+        fields:
+          'nextPageToken, files(id, name, mimeType, webViewLink, webContentLink)',
+      });
+
+      console.log('Files:', response.data.files);
+      return response.data.files;
+    } catch (error) {
+      console.error('Error listing files:', error.message);
+      throw error;
+    }
   }
 }
