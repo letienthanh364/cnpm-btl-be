@@ -4,6 +4,7 @@ import { Repository } from 'typeorm';
 import { File } from './file.entity';
 import { GoogleDriveService } from 'src/google-drive.service';
 import { FileSearchDto } from './dtos/file.search.dto';
+import * as pdfParse from 'pdf-parse';
 
 @Injectable()
 export class FileService {
@@ -16,10 +17,23 @@ export class FileService {
   async uploadFile(file: Express.Multer.File): Promise<File> {
     const fileRes = await this.googleDriveService.uploadFile(file);
 
+    let numPages = 1;
+
+    if (file.mimetype === 'application/pdf') {
+      try {
+        // Parse the PDF to extract the number of pages
+        const pdfData = await pdfParse(file.buffer); // pdf-parse works directly with the file buffer
+        numPages = pdfData.numpages; // Extract the number of pages from the parsed data
+      } catch (error) {
+        console.error('Failed to calculate pages for PDF:', error.message);
+      }
+    }
+
     const fileEntity = this.fileRepository.create({
       name: file.originalname,
       mimeType: file.mimetype,
-      path: fileRes.fileUrl, // Save the Google Drive file URL or ID in the database
+      path: fileRes.fileUrl, // Save the Google Drive file URL or ID in the database,
+      total_pages: numPages,
     });
 
     return this.fileRepository.save(fileEntity);

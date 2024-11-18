@@ -9,6 +9,9 @@ export class File extends BaseEntity {
   @Column()
   mimeType: string;
 
+  @Column({ type: 'int', default: 1 })
+  total_pages: number;
+
   @Column()
   path: string; // Store the file path
 }

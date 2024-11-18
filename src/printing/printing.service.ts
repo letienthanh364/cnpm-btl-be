@@ -11,6 +11,7 @@ import { PrintJobSearchDto } from './dtos/printjobDtos/printjob.search.dto';
 import { User } from 'src/user/user.entity';
 import { File } from 'src/file/file.entity';
 import { PrinterStatus } from 'src/common/decorator/printer_status';
+import { calculateNumPages } from 'src/common/printing/printing.utils';
 
 @Injectable()
 export class PrinterService {
@@ -175,10 +176,16 @@ export class PrintJobService {
       );
     }
 
+    const numPages = calculateNumPages(
+      file.total_pages,
+      printjob.page_size,
+      printjob.duplex,
+    );
+
     return this.printjobRepo.save({
       page_size: printjob.page_size,
-      num_pages: printjob.num_pages,
       duplex: printjob.duplex,
+      num_pages: numPages,
       file: file,
       user: user,
       printer: printer,
