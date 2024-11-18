@@ -50,11 +50,18 @@ export class PrinterController {
 
 @Controller('printjob')
 export class PrintJobController {
-  constructor(private readonly printJobService: PrintJobService) {}
+  constructor(
+    private readonly printJobService: PrintJobService,
+    private readonly printerService: PrinterService,
+  ) {}
 
   @Post('')
   async create(@Body() printjob: PrintJobCreateDto) {
-    return this.printJobService.createPrintJob(printjob);
+    const newPrintJob = await this.printJobService.createPrintJob(printjob);
+    return this.printerService.enqueuePrintJob(
+      newPrintJob,
+      printjob.printer_id,
+    );
   }
 
   @Get(':id')

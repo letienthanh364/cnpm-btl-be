@@ -10,6 +10,7 @@ import { PrintJobCreateDto } from './dtos/printjobDtos/printjob.create.dto';
 import { PrintJobSearchDto } from './dtos/printjobDtos/printjob.search.dto';
 import { User } from 'src/user/user.entity';
 import { File } from 'src/file/file.entity';
+import { PrinterStatus } from 'src/common/decorator/printer_status';
 
 @Injectable()
 export class PrinterService {
@@ -65,6 +66,69 @@ export class PrinterService {
     } finally {
       await queryRunner.release();
     }
+  }
+
+  // ! Add printjob to queue
+  async enqueuePrintJob(printJob: PrintJob, printerId: string) {
+    const printer = await this.printerRepo.findOne({
+      where: { id: printerId },
+    });
+    if (!printer) {
+      throw new BadRequestException(`printer with id ${printerId} not found`);
+    }
+
+    if (printer.status == PrinterStatus.InMaintain) {
+      throw new BadRequestException(
+        'selected printer is in unavailable for now',
+      );
+    }
+
+    const positionInQueue = printer.printjob_queue.length;
+    printer.printjob_queue.push(printJob.id);
+    printer.status = PrinterStatus.Busy;
+
+    await this.printerRepo.save(printer);
+
+    const { printer: _, ...resPrinjob } = printJob;
+
+    return {
+      message: 'success',
+      printJob: resPrinjob,
+      printer: printer,
+      position: positionInQueue,
+    };
+  }
+
+  async dequeuePrintJob(printJob: PrintJob, printerId: string) {
+    const printer = await this.printerRepo.findOne({
+      where: { id: printerId },
+    });
+    if (!printer) {
+      throw new BadRequestException(`printer with id ${printerId} not found`);
+    }
+
+    if (printer.printjob_queue.length == 0) {
+      throw new BadRequestException('the printer is having no printjob');
+    }
+
+    if (!printer.printjob_queue.includes(printJob.id)) {
+      throw new BadRequestException(
+        `printjob with id ${printJob.id} is not assigned to this printer`,
+      );
+    }
+
+    printer.printjob_queue = printer.printjob_queue.filter(
+      (jobId) => jobId != printJob.id,
+    );
+    if (printer.printjob_queue.length == 0) {
+      printer.status = PrinterStatus.Available;
+    }
+
+    await this.printerRepo.save(printer);
+    return {
+      message: 'printjob is dequeued from printer',
+      printer: printer,
+    };
   }
 }
 

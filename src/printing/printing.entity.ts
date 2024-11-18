@@ -23,6 +23,13 @@ export class Printer extends BaseEntity {
   })
   @IsOptional()
   status: PrinterStatus;
+
+  @Column({
+    type: 'varchar',
+    array: true,
+    default: [],
+  })
+  printjob_queue: string[];
 }
 
 @Entity('PrintJob')
