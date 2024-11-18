@@ -15,12 +15,11 @@ export class FileService {
 
   async uploadFile(file: Express.Multer.File): Promise<File> {
     const fileRes = await this.googleDriveService.uploadFile(file);
-    const fileUrl = await this.googleDriveService.getFileUrl(fileRes.fileId);
 
     const fileEntity = this.fileRepository.create({
       name: file.originalname,
       mimeType: file.mimetype,
-      path: fileUrl, // Save the Google Drive file URL or ID in the database
+      path: fileRes.fileUrl, // Save the Google Drive file URL or ID in the database
     });
 
     return this.fileRepository.save(fileEntity);
@@ -37,10 +36,6 @@ export class FileService {
 
     const res = await query.getMany();
     return res;
-  }
-
-  async getFile(fileId: string): Promise<string> {
-    return `https://drive.google.com/uc?id=${fileId}`;
   }
 
   async downloadFile(fileId: string): Promise<string> {

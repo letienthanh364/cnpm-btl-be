@@ -60,7 +60,11 @@ export class GoogleDriveService {
     }
   }
 
-  async getFileUrl(fileId: string): Promise<string> {
+  async getFileViewUrl(fileId: string): Promise<string> {
+    return `https://drive.google.com/uc?id=${fileId}/view?usp=drivesdk`;
+  }
+
+  async getFileDownloadUrl(fileId: string): Promise<string> {
     return `https://drive.google.com/uc?id=${fileId}&export=download`;
   }
 
