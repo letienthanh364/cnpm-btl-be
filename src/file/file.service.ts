@@ -13,8 +13,8 @@ export class FileService {
   ) {}
 
   async uploadFile(file: Express.Multer.File): Promise<File> {
-    const fileId = await this.googleDriveService.uploadFile(file);
-    const fileUrl = await this.googleDriveService.getFileUrl(fileId);
+    const fileRes = await this.googleDriveService.uploadFile(file);
+    const fileUrl = await this.googleDriveService.getFileUrl(fileRes.fileId);
 
     const fileEntity = this.fileRepository.create({
       name: file.originalname,
