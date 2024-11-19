@@ -13,6 +13,10 @@ import { UserLoginDto } from './dtos/user.login.dto';
 import { UserService } from './user.service';
 import { JwtAuthGuard } from 'src/common/auth/strategy';
 import { User } from './user.entity';
+import { JwtPayload } from 'src/common/jwt/payload';
+import { Notify } from 'src/notify/notify.entity';
+import { NotifyService } from 'src/notify/notify.service';
+import { CurrentUser } from 'src/common/decorator/user';
 
 export interface RequestUser extends Request {
   user: User;
@@ -20,7 +24,10 @@ export interface RequestUser extends Request {
 
 @Controller('user')
 export class UserController {
-  constructor(private readonly userService: UserService) {}
+  constructor(
+    private readonly userService: UserService,
+    private readonly notifyService: NotifyService,
+  ) {}
 
   @Post('create-users')
   async register(@Body() users: UserCreateDto[]) {
@@ -34,6 +41,15 @@ export class UserController {
   @Post('login')
   async login(@Body() user: UserLoginDto) {
     return this.userService.login(user);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('notifications')
+  async getUserNotifications(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<Notify[]> {
+    const userId = user.id; // Get the user's ID from the JWT payload
+    return this.notifyService.listNotificationsForUser(userId);
   }
 
   @UseGuards(JwtAuthGuard)
