@@ -6,6 +6,7 @@ import { dataSource } from 'ormconfig';
 import { UserModule } from './user/user.module';
 import { PrintingModule } from './printing/printing.module';
 import { FileModule } from './file/file.module';
+import { NotifyModule } from './notify/notify.module';
 
 @Module({
   imports: [
@@ -13,6 +14,7 @@ import { FileModule } from './file/file.module';
     UserModule,
     PrintingModule,
     FileModule,
+    NotifyModule,
   ],
   controllers: [AppController],
   providers: [AppService],
