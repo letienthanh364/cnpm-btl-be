@@ -21,6 +21,7 @@ import { CurrentUser } from 'src/common/decorator/user';
 import { PrintJobService } from 'src/printing/printing.service';
 import { PrintJobSearchDto } from 'src/printing/dtos/printjobDtos/printjob.search.dto';
 import { PrintJob } from 'src/printing/printing.entity';
+import { UserAddPagesDto } from './dtos/user.add_pages.dto';
 
 export interface RequestUser extends Request {
   user: User;
@@ -88,5 +89,10 @@ export class UserController {
     // Exclude sensitive fields like password and deleted_at
     const { password, deleted_at, ...userDetails } = user;
     return userDetails;
+  }
+
+  @Post('add-pages')
+  async addPagesForUser(@Body() body: UserAddPagesDto) {
+    return this.userService.addPages(body);
   }
 }

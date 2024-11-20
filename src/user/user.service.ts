@@ -13,6 +13,8 @@ import * as bcrypt from 'bcryptjs';
 import { JwtPayload } from 'src/common/jwt/payload';
 import { UserCreateDto } from './dtos/user.create.dto';
 import 'dotenv/config';
+import { UserAddPagesDto } from './dtos/user.add_pages.dto';
+import { UserSimpleDto } from './dtos/user.simple.dto';
 
 @Injectable()
 export class UserService {
@@ -91,5 +93,22 @@ export class UserService {
     }
 
     throw new UnauthorizedException('login failed');
+  }
+
+  async addPages(dto: UserAddPagesDto): Promise<UserSimpleDto> {
+    const user = await this.userRepo.findOne({
+      where: {
+        id: dto.id,
+      },
+    });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    user.available_pages = user.available_pages + dto.pages;
+    this.userRepo.save(user);
+
+    return { name: user.name, available_pages: user.available_pages };
   }
 }
