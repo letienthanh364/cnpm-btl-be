@@ -5,6 +5,7 @@ import {
   Param,
   ParseUUIDPipe,
   Post,
+  Query,
   Req,
   UseGuards,
 } from '@nestjs/common';
@@ -17,6 +18,9 @@ import { JwtPayload } from 'src/common/jwt/payload';
 import { Notify } from 'src/notify/notify.entity';
 import { NotifyService } from 'src/notify/notify.service';
 import { CurrentUser } from 'src/common/decorator/user';
+import { PrintJobService } from 'src/printing/printing.service';
+import { PrintJobSearchDto } from 'src/printing/dtos/printjobDtos/printjob.search.dto';
+import { PrintJob } from 'src/printing/printing.entity';
 
 export interface RequestUser extends Request {
   user: User;
@@ -27,6 +31,7 @@ export class UserController {
   constructor(
     private readonly userService: UserService,
     private readonly notifyService: NotifyService,
+    private readonly printjobService: PrintJobService,
   ) {}
 
   @Post('create-users')
@@ -50,6 +55,20 @@ export class UserController {
   ): Promise<Notify[]> {
     const userId = user.id; // Get the user's ID from the JWT payload
     return this.notifyService.listNotificationsForUser(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get('printlogs')
+  async listPrintlogs(
+    @Req() req: RequestUser,
+    @Query() date?: string[],
+  ): Promise<PrintJob[]> {
+    const printjobSearchDto: PrintJobSearchDto = {
+      user_id: req.user.id,
+      date: date,
+    };
+
+    return this.printjobService.search(printjobSearchDto);
   }
 
   @UseGuards(JwtAuthGuard)

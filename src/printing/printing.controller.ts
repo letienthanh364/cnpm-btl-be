@@ -75,12 +75,14 @@ export class PrintJobController {
     @Query('file_id') fileId?: string,
     @Query('printer_id') printerId?: string,
     @Query('print_status') printStatus?: PrintJobStatus,
+    @Query('date') date?: string[],
   ): Promise<PrintJob[]> {
     const searchDto: PrintJobSearchDto = {
       user_id: userId,
       file_id: fileId,
       printer_id: printerId,
       print_status: printStatus,
+      date: date,
     };
 
     return this.printJobService.search(searchDto);

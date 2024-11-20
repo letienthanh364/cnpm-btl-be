@@ -12,10 +12,13 @@ import { User } from 'src/user/user.entity';
 @Module({
   imports: [
     TypeOrmModule.forFeature([Printer, PrintJob, User, File]),
-    UserModule,
     FileModule,
   ],
-  exports: [TypeOrmModule.forFeature([Printer, PrintJob])],
+  exports: [
+    TypeOrmModule.forFeature([Printer, PrintJob]),
+    PrintJobService,
+    PrinterService,
+  ],
   providers: [PrinterService, PrintJobService, LocalStrategy],
   controllers: [PrinterController, PrintJobController],
 })

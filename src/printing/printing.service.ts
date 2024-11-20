@@ -12,6 +12,7 @@ import { User } from 'src/user/user.entity';
 import { File } from 'src/file/file.entity';
 import { PrinterStatus } from 'src/common/decorator/printer_status';
 import { calculateNumPages } from 'src/common/printing/printing.utils';
+import { PrintConfig } from 'src/common/printing/printing.config';
 
 @Injectable()
 export class PrinterService {
@@ -183,8 +184,8 @@ export class PrintJobService {
     );
 
     return this.printjobRepo.save({
-      page_size: printjob.page_size,
-      duplex: printjob.duplex,
+      page_size: printjob.page_size ?? PrintConfig.printingStadarSize,
+      duplex: printjob.duplex ?? true,
       num_pages: numPages,
       file: file,
       user: user,
@@ -205,31 +206,43 @@ export class PrintJobService {
   }
 
   async search(data: PrintJobSearchDto): Promise<PrintJob[]> {
-    const query = this.printjobRepo.createQueryBuilder('printJob');
+    const query = this.printjobRepo.createQueryBuilder('printjob');
 
     query
-      .leftJoinAndSelect('printJob.file', 'file')
-      .leftJoinAndSelect('printJob.user', 'user')
-      .leftJoinAndSelect('printJob.printer', 'printer');
+      .leftJoinAndSelect('printjob.file', 'file')
+      .leftJoinAndSelect('printjob.user', 'user')
+      .leftJoinAndSelect('printjob.printer', 'printer');
 
     // Add filters dynamically based on the query DTO
     if (data.user_id) {
-      query.andWhere('printJob.user.id = :user_id', { user_id: data.user_id });
+      query.andWhere('printjob.user.id = :user_id', { user_id: data.user_id });
     }
 
     if (data.printer_id) {
-      query.andWhere('printJob.printer.id = :printer_id', {
+      query.andWhere('printjob.printer.id = :printer_id', {
         printer_id: data.printer_id,
       });
     }
 
     if (data.file_id) {
-      query.andWhere('printJob.file.id = :file_id', { file_id: data.file_id });
+      query.andWhere('printjob.file.id = :file_id', { file_id: data.file_id });
     }
 
     if (data.print_status !== undefined) {
-      query.andWhere('printJob.print_status = :print_status', {
+      query.andWhere('printjob.print_status = :print_status', {
         print_status: data.print_status,
+      });
+    }
+
+    // Validate and convert date array to Date objects
+    if (data.date && data.date.length === 2) {
+      const [startDate, endDate] = data.date.map((date) => new Date(date));
+
+      startDate.setHours(0, 0, 0, 0);
+      endDate.setHours(23, 59, 59, 999);
+      query.andWhere('printjob.created_at BETWEEN :start AND :end', {
+        start: startDate,
+        end: endDate,
       });
     }
 
