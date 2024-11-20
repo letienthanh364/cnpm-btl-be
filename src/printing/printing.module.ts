@@ -8,18 +8,21 @@ import { UserModule } from 'src/user/user.module';
 import { FileModule } from 'src/file/file.module';
 import { File } from 'src/file/file.entity';
 import { User } from 'src/user/user.entity';
+import { NotifyModule } from 'src/notify/notify.module';
+import { NotifyService } from 'src/notify/notify.service';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Printer, PrintJob, User, File]),
     FileModule,
+    NotifyModule,
   ],
   exports: [
     TypeOrmModule.forFeature([Printer, PrintJob]),
     PrintJobService,
     PrinterService,
   ],
-  providers: [PrinterService, PrintJobService, LocalStrategy],
+  providers: [PrinterService, PrintJobService, NotifyService, LocalStrategy],
   controllers: [PrinterController, PrintJobController],
 })
 export class PrintingModule {}
