@@ -232,6 +232,7 @@ export class PrintJobService {
       file.total_pages,
       printjob.page_size,
       printjob.duplex,
+      printjob.copies,
     );
 
     if (user.available_pages < numPages) {

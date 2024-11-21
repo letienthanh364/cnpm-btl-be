@@ -4,6 +4,7 @@ export function calculateNumPages(
   totalPages: number,
   pageSize: number[],
   duplex: boolean,
+  copies: number,
 ): number {
   if (!Array.isArray(pageSize) || pageSize.length !== 2) {
     throw new Error(
@@ -29,7 +30,7 @@ export function calculateNumPages(
   const areaAdjustmentFactor = pageArea / standardArea;
 
   // Adjust total pages based on area
-  const adjustedPages = Math.ceil(totalPages / areaAdjustmentFactor);
+  const adjustedPages = Math.ceil(totalPages / areaAdjustmentFactor) * copies;
 
   // Handle duplex printing
   if (duplex) {

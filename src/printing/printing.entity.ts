@@ -5,6 +5,7 @@ import { PrinterStatus } from 'src/common/decorator/printer_status';
 import { PrintJobStatus } from 'src/common/decorator/printjob_status';
 import { File } from 'src/file/file.entity';
 import { User } from 'src/user/user.entity';
+import { PrintConfig } from 'src/common/printing/printing.config';
 
 @Entity('Printer')
 export class Printer extends BaseEntity {
@@ -48,8 +49,11 @@ export class PrintJob extends BaseEntity {
   @JoinColumn({ name: 'printer_id', referencedColumnName: 'id' }) // Column name in PrintJob table
   printer: Printer;
 
-  @Column({ type: 'int', array: true })
+  @Column({ type: 'int', array: true, default: PrintConfig.printingStadarSize })
   page_size: number[];
+
+  @Column({ type: 'int', default: 1 })
+  copies: number;
 
   @Column({ type: 'int' })
   num_pages: number;
