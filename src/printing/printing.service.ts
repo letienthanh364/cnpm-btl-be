@@ -7,13 +7,13 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { DataSource, Repository } from 'typeorm';
 
 import 'dotenv/config';
-import { Printer, PrintJob } from './printing.entity';
+import { Printer, PrinterSimple, PrintJob } from './printing.entity';
 import { PrinterCreateDto } from './dtos/printerDtos/printer.create.dto';
 import { PrinterSearchDto } from './dtos/printerDtos/printer.search.dto';
 import { PrintJobCreateDto } from './dtos/printjobDtos/printjob.create.dto';
 import { PrintJobSearchDto } from './dtos/printjobDtos/printjob.search.dto';
-import { User } from 'src/user/user.entity';
-import { File } from 'src/file/file.entity';
+import { User, UserSimple } from 'src/user/user.entity';
+import { File, Filesimple } from 'src/file/file.entity';
 import { PrinterStatus } from 'src/common/decorator/printer_status';
 import { calculateNumPages } from 'src/common/printing/printing.utils';
 import { PrintConfig } from 'src/common/printing/printing.config';
@@ -82,32 +82,50 @@ export class PrinterService implements OnApplicationBootstrap {
     const printer = await this.printerRepo.findOne({
       where: { id: printerId },
     });
+
     if (!printer) {
-      throw new BadRequestException(`printer with id ${printerId} not found`);
+      throw new BadRequestException(`Printer with ID ${printerId} not found`);
     }
 
-    if (printer.status == PrinterStatus.InMaintain) {
+    if (printer.status === PrinterStatus.InMaintain) {
       throw new BadRequestException(
-        'selected printer is in unavailable for now',
+        'The selected printer is currently unavailable',
       );
     }
 
+    // Add the new job to the queue
     const positionInQueue = printer.printjob_queue.length;
     printer.printjob_queue.push(printJob.id);
 
+    // If the printer is available, mark it as busy before processing starts
+    if (printer.status === PrinterStatus.Available) {
+      printer.status = PrinterStatus.Busy;
+    }
+
+    // Save the updated printer entity
     await this.printerRepo.save(printer);
 
-    const { printer: _, ...resPrinjob } = printJob;
+    // Simplify the printer response
+    const printerSimple: PrinterSimple = {
+      id: printer.id,
+      printer_code: printer.printer_code,
+      location: printer.location,
+      status: printer.status,
+      printjob_queue: printer.printjob_queue,
+    };
 
+    // Build the response
+    const { printer: _, ...resPrinjob } = printJob;
     const response = {
       message: 'success',
       printJob: resPrinjob,
       position: positionInQueue,
-      printer: printer,
+      printer: printerSimple,
     };
 
-    if (printer.status === PrinterStatus.Available) {
-      this.startProcessingQueue(printer);
+    // Start processing the queue if not already processing
+    if (printer.status === PrinterStatus.Busy && positionInQueue === 0) {
+      this.startProcessingQueue(printerId);
     }
 
     return response;
@@ -117,68 +135,109 @@ export class PrinterService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     const printers = await this.printerRepo.find();
     printers.forEach((printer) => {
-      this.startProcessingQueue(printer); // Start queue processing for each printer
+      this.startProcessingQueue(printer.id); // Start queue processing for each printer
     });
   }
 
   // ! Function to simulate print job processing
-  async startProcessingQueue(printer: Printer) {
-    // Continuously process the print job queue
+  async startProcessingQueue(printerId: string) {
+    // Use a flag to ensure only one processing loop per printer
     const processQueue = async () => {
-      if (printer.printjob_queue.length === 0) {
-        printer.status = PrinterStatus.Available;
-        await this.printerRepo.save(printer);
-        return; // Stop processing if queue is empty
+      let isProcessing = true;
+
+      while (isProcessing) {
+        const queryRunner = this.dataSource.createQueryRunner();
+        await queryRunner.connect();
+
+        try {
+          await queryRunner.startTransaction();
+
+          // Fetch the printer and lock for processing
+          const updatedPrinter = await queryRunner.manager.findOne(Printer, {
+            where: { id: printerId },
+            lock: { mode: 'pessimistic_write' },
+          });
+
+          if (!updatedPrinter || updatedPrinter.printjob_queue.length === 0) {
+            // No jobs left; mark as available
+            if (updatedPrinter) {
+              updatedPrinter.status = PrinterStatus.Available;
+              await queryRunner.manager.save(updatedPrinter);
+            }
+            isProcessing = false; // Stop processing if the queue is empty
+            await queryRunner.commitTransaction();
+            break;
+          }
+
+          // Get the next job to process
+          const nextJobId = updatedPrinter.printjob_queue[0];
+          const printJob = await queryRunner.manager.findOne(PrintJob, {
+            where: { id: nextJobId },
+            relations: ['file', 'user', 'printer'],
+          });
+
+          if (!printJob) {
+            // If the print job is missing, remove it from the queue
+            updatedPrinter.printjob_queue.shift();
+            await queryRunner.manager.save(updatedPrinter);
+            await queryRunner.commitTransaction();
+            continue;
+          }
+
+          // Simulate processing
+          console.log(
+            `Printer ${updatedPrinter.printer_code} is printing ${printJob.file.name}`,
+          );
+
+          const processingTime =
+            printJob.num_pages * PrintConfig.printingTimePerPage * 1000;
+
+          // Commit the transaction before simulating processing
+          await queryRunner.commitTransaction();
+
+          await new Promise((resolve) => setTimeout(resolve, processingTime));
+
+          // ? Remove the job from the queue and update the status
+          const queryRunner2 = this.dataSource.createQueryRunner();
+          await queryRunner2.connect();
+          await queryRunner2.startTransaction();
+
+          const refreshedPrinter = await queryRunner2.manager.findOne(Printer, {
+            where: { id: printerId },
+            lock: { mode: 'pessimistic_write' },
+          });
+
+          if (refreshedPrinter) {
+            refreshedPrinter.printjob_queue.shift();
+            refreshedPrinter.status =
+              refreshedPrinter.printjob_queue.length === 0
+                ? PrinterStatus.Available
+                : PrinterStatus.Busy;
+
+            await queryRunner2.manager.save(refreshedPrinter);
+
+            console.log(
+              `Printer ${refreshedPrinter.printer_code} printed ${printJob.file.name} successfully`,
+            );
+          }
+
+          await queryRunner2.commitTransaction();
+
+          // ? Notify the user
+          const notifyPrintjob: NotifyPrintjobCreateDto = {
+            message: `Your document ${printJob.file.name} is printed by printer at ${printJob.printer.location}`,
+            receiver_ids: [printJob.user.id],
+            printjob_id: printJob.id,
+            type: 'notify',
+          };
+          await this.notifyService.createPrintjobNotification(notifyPrintjob);
+        } catch (error) {
+          console.error('Error processing queue:', error.message);
+          await queryRunner.rollbackTransaction();
+        } finally {
+          await queryRunner.release();
+        }
       }
-
-      printer.status = PrinterStatus.Busy;
-
-      // Get the next print job in the queue
-      const nextJobId = printer.printjob_queue[0];
-      const printJob = await this.dataSource.getRepository(PrintJob).findOne({
-        where: { id: nextJobId },
-        relations: ['file', 'user', 'printer'],
-      });
-
-      if (!printJob) {
-        // If the print job is missing, remove it from the queue
-        printer.printjob_queue.shift();
-        await this.printerRepo.save(printer);
-        return processQueue();
-      }
-
-      // Simulate the printing process
-      printer.status = PrinterStatus.Busy;
-      await this.printerRepo.save(printer);
-
-      console.log(
-        `Printer ${printer.printer_code} is printing ${printJob.file.name}`,
-      );
-
-      // ? Simulate processing time using a Promise
-      const processingTime =
-        printJob.num_pages * PrintConfig.printingTimePerPage * 1000;
-
-      await new Promise((resolve) => setTimeout(resolve, processingTime));
-
-      // Remove the job from the queue and save
-      printer.printjob_queue.shift();
-      await this.printerRepo.save(printer);
-
-      console.log(
-        `Printer ${printer.printer_code} printed ${printJob.file.name} successfully`,
-      );
-
-      // ? Notify the user
-      const notifyPrintjob: NotifyPrintjobCreateDto = {
-        message: `Your document ${printJob.file.name} is printed by printer at ${printJob.printer.location}`,
-        receiver_ids: [printJob.user.id],
-        printjob_id: printJob.id,
-        type: 'notify',
-      };
-      await this.notifyService.createPrintjobNotification(notifyPrintjob);
-
-      processQueue(); // Process the next job in the queue
     };
 
     processQueue(); // Start processing the queue
@@ -209,6 +268,11 @@ export class PrintJobService {
         `user with id ${printjob.user_id} not found`,
       );
     }
+    const userSimple: UserSimple = {
+      id: user.id,
+      name: user.name,
+      available_pages: user.available_pages,
+    };
 
     const printer = await this.printerRepo.findOne({
       where: { id: printjob.printer_id },
@@ -227,6 +291,13 @@ export class PrintJobService {
         `file with id ${printjob.file_id} not found`,
       );
     }
+    const fileSimple: Filesimple = {
+      id: file.id,
+      name: file.name,
+      total_pages: file.total_pages,
+      mimeType: file.mimeType,
+      path: file.path,
+    };
 
     const numPages = calculateNumPages(
       file.total_pages,
@@ -245,7 +316,7 @@ export class PrintJobService {
 
     await this.userRepo.save(user);
 
-    return this.printjobRepo.save({
+    const newPrintjob = await this.printjobRepo.save({
       page_size: printjob.page_size ?? PrintConfig.printingStadarSize,
       duplex: printjob.duplex ?? true,
       num_pages: numPages,
@@ -253,6 +324,13 @@ export class PrintJobService {
       user: user,
       printer: printer,
     });
+
+    return {
+      ...newPrintjob,
+      file: fileSimple,
+      user: userSimple,
+      printer: printer,
+    };
   }
 
   async findOne(id: string): Promise<PrintJob> {

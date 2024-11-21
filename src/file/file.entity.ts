@@ -1,3 +1,4 @@
+import { PickType } from '@nestjs/swagger';
 import { BaseEntity } from 'src/common/base_entity';
 import { Column, Entity, PrimaryGeneratedColumn } from 'typeorm';
 
@@ -15,3 +16,11 @@ export class File extends BaseEntity {
   @Column()
   path: string; // Store the file path
 }
+
+export class Filesimple extends PickType(File, [
+  'id',
+  'name',
+  'mimeType',
+  'total_pages',
+  'path',
+]) {}

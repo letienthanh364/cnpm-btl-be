@@ -1,6 +1,6 @@
 import { Column, Entity } from 'typeorm';
 import { BaseEntity } from '../common/base_entity';
-import { ApiProperty } from '@nestjs/swagger';
+import { ApiProperty, PickType } from '@nestjs/swagger';
 import { Role } from 'src/common/decorator/role';
 import { IsOptional } from 'class-validator';
 
@@ -29,3 +29,9 @@ export class User extends BaseEntity {
   @Column({ type: 'int', default: 0 })
   available_pages: number;
 }
+
+export class UserSimple extends PickType(User, [
+  'id',
+  'name',
+  'available_pages',
+]) {}
