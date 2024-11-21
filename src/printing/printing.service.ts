@@ -152,28 +152,24 @@ export class PrinterService implements OnApplicationBootstrap {
       await this.printerRepo.save(printer);
 
       console.log(
-        `Printer ${printer.id} is processing print job ${printJob.id}`,
+        `Printer ${printer.printer_code} is printing ${printJob.file.name}`,
       );
 
-      // ? Simulate processing time
+      // ? Simulate processing time using a Promise
       const processingTime =
         printJob.num_pages * PrintConfig.printingTimePerPage * 1000;
 
-      setTimeout(async () => {
-        console.log(`Printer ${printer.id} completed print job ${printJob.id}`);
+      await new Promise((resolve) => setTimeout(resolve, processingTime));
 
-        // Remove the job from the queue and continue processing
-        printer.printjob_queue.shift();
-        await this.printerRepo.save(printer);
-
-        processQueue(); // Process the next job in the queue
-      }, processingTime);
+      // Remove the job from the queue and save
+      printer.printjob_queue.shift();
+      await this.printerRepo.save(printer);
 
       console.log(
-        `Printer ${printer.id} processed print job ${printJob.id} successfully`,
+        `Printer ${printer.printer_code} printed ${printJob.file.name} successfully`,
       );
 
-      // ? Notify to user
+      // ? Notify the user
       const notifyPrintjob: NotifyPrintjobCreateDto = {
         message: `Your document ${printJob.file.name} is printed by printer at ${printJob.printer.location}`,
         receiver_ids: [printJob.user.id],
@@ -181,6 +177,8 @@ export class PrinterService implements OnApplicationBootstrap {
         type: 'notify',
       };
       await this.notifyService.createPrintjobNotification(notifyPrintjob);
+
+      processQueue(); // Process the next job in the queue
     };
 
     processQueue(); // Start processing the queue
