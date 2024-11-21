@@ -234,6 +234,16 @@ export class PrintJobService {
       printjob.duplex,
     );
 
+    if (user.available_pages < numPages) {
+      throw new BadRequestException(
+        `available pages not enough for required pages (${user.available_pages} compare to ${numPages})`,
+      );
+    }
+
+    user.available_pages = user.available_pages - numPages;
+
+    await this.userRepo.save(user);
+
     return this.printjobRepo.save({
       page_size: printjob.page_size ?? PrintConfig.printingStadarSize,
       duplex: printjob.duplex ?? true,
