@@ -1,10 +1,15 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { File } from './file.entity';
 import { GoogleDriveService } from 'src/google-drive.service';
 import { FileSearchDto } from './dtos/file.search.dto';
 import * as pdfParse from 'pdf-parse';
+import { AppService } from 'src/app.service';
 
 @Injectable()
 export class FileService {
@@ -12,9 +17,21 @@ export class FileService {
     @InjectRepository(File)
     private readonly fileRepository: Repository<File>,
     private readonly googleDriveService: GoogleDriveService,
+    private readonly appService: AppService,
   ) {}
 
   async uploadFile(file: Express.Multer.File): Promise<File> {
+    // Extract the file extension
+    const fileExtension = file.originalname.split('.').pop()?.toLowerCase();
+
+    // Check if the file extension is in the allowedFiles list
+    const allowedFiles = this.appService.getAllowedFiles();
+    if (!fileExtension || !allowedFiles.includes(fileExtension)) {
+      throw new BadRequestException(
+        `File type not allowed. Allowed types: ${allowedFiles.join(', ')}`,
+      );
+    }
+
     const fileRes = await this.googleDriveService.uploadFile(file);
 
     let numPages = 1;
@@ -22,8 +39,8 @@ export class FileService {
     if (file.mimetype === 'application/pdf') {
       try {
         // Parse the PDF to extract the number of pages
-        const pdfData = await pdfParse(file.buffer); // pdf-parse works directly with the file buffer
-        numPages = pdfData.numpages; // Extract the number of pages from the parsed data
+        const pdfData = await pdfParse(file.buffer);
+        numPages = pdfData.numpages;
       } catch (error) {
         console.error('Failed to calculate pages for PDF:', error.message);
       }
@@ -32,7 +49,7 @@ export class FileService {
     const fileEntity = this.fileRepository.create({
       name: file.originalname,
       mimeType: file.mimetype,
-      path: fileRes.fileUrl, // Save the Google Drive file URL or ID in the database,
+      path: fileRes.fileUrl, // Save the Google Drive file URL or ID in the database
       total_pages: numPages,
     });
 

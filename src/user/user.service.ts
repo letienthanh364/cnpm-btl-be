@@ -69,10 +69,8 @@ export class UserService {
 
   // ! Login
   async login(userData: UserLoginDto): Promise<string> {
-    const user = await this.userRepo.findOne({
-      where: {
-        username: userData.username,
-      },
+    const user = await this.userRepo.findOneBy({
+      username: userData.username,
     });
 
     if (!user) {

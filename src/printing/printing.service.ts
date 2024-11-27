@@ -19,6 +19,7 @@ import { calculateNumPages } from 'src/common/printing/printing.utils';
 import { PrintConfig } from 'src/common/printing/printing.config';
 import { NotifyService } from 'src/notify/notify.service';
 import { NotifyPrintjobCreateDto } from 'src/notify/dtos/notify.create.dto';
+import { AppService } from 'src/app.service';
 
 @Injectable()
 export class PrinterService implements OnApplicationBootstrap {
@@ -27,6 +28,7 @@ export class PrinterService implements OnApplicationBootstrap {
     private readonly printerRepo: Repository<Printer>,
     private readonly dataSource: DataSource,
     private readonly notifyService: NotifyService,
+    private readonly appService: AppService,
   ) {}
 
   async findOne(id: string): Promise<Printer> {
@@ -190,7 +192,9 @@ export class PrinterService implements OnApplicationBootstrap {
           );
 
           const processingTime =
-            printJob.num_pages * PrintConfig.printingTimePerPage * 1000;
+            printJob.num_pages *
+            this.appService.getPrintingTimePerPaper() *
+            1000;
 
           // Commit the transaction before simulating processing
           await queryRunner.commitTransaction();

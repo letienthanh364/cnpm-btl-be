@@ -44,9 +44,9 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
 export class RolesGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
-    const user = request.user;
+    const user: User = request.user;
 
     // Ensure the user has an admin role
-    return user && user.role === Role.Admin;
+    return user && user.authority_group == Role.Admin;
   }
 }

@@ -83,6 +83,7 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Get()
   async getCurrentUser(@Req() req: RequestUser): Promise<Partial<User>> {
+    console.log(req.user);
     const userId = req.user.id;
     const user = await this.userService.findOne(userId);
 

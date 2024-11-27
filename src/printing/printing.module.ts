@@ -10,6 +10,8 @@ import { File } from 'src/file/file.entity';
 import { User } from 'src/user/user.entity';
 import { NotifyModule } from 'src/notify/notify.module';
 import { NotifyService } from 'src/notify/notify.service';
+import { AppModule } from 'src/app.module';
+import { AppService } from 'src/app.service';
 
 @Module({
   imports: [
@@ -22,7 +24,13 @@ import { NotifyService } from 'src/notify/notify.service';
     PrintJobService,
     PrinterService,
   ],
-  providers: [PrinterService, PrintJobService, NotifyService, LocalStrategy],
+  providers: [
+    PrinterService,
+    PrintJobService,
+    NotifyService,
+    LocalStrategy,
+    AppService,
+  ],
   controllers: [PrinterController, PrintJobController],
 })
 export class PrintingModule {}

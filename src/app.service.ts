@@ -6,8 +6,19 @@ export class AppService {
   private pricePerPaper: number = 5;
   private allowedFiles: string[] = ['pdf', 'txt', 'doc', 'png'];
 
-  getHello(): string {
-    return 'Hello World!';
+  // Getter for printingTimePerPaper
+  getPrintingTimePerPaper(): number {
+    return this.printingTimePerPaper;
+  }
+
+  // Getter for pricePerPaper
+  getPricePerPaper(): number {
+    return this.pricePerPaper;
+  }
+
+  // Getter for allowedFiles
+  getAllowedFiles(): string[] {
+    return this.allowedFiles;
   }
 
   // Setter for printingTimePerPaper
