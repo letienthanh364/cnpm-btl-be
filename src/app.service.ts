@@ -94,18 +94,28 @@ export class AppService {
 
     // Calculate total printed pages and how many pages each user has used
     let totalPrintedPages = 0;
-    const userPageUsage = new Map<string, number>(); // Map to store pages used by each user
+    const userPageUsage = new Map<
+      string,
+      { name: string; used_pages: number }
+    >(); // Map to store pages used by each user along with their username
 
     printJobs.forEach((printJob) => {
       totalPrintedPages += printJob.num_pages;
+
       const userId = printJob.user.id;
+      const userName = printJob.user.name; // Assuming 'name' is the username field
+
       if (userPageUsage.has(userId)) {
-        userPageUsage.set(
-          userId,
-          userPageUsage.get(userId)! + printJob.num_pages,
-        );
+        userPageUsage.set(userId, {
+          name: userName, // Keep the username the same
+          used_pages:
+            userPageUsage.get(userId)!.used_pages + printJob.num_pages, // Add pages to the existing usage
+        });
       } else {
-        userPageUsage.set(userId, printJob.num_pages);
+        userPageUsage.set(userId, {
+          name: userName,
+          used_pages: printJob.num_pages,
+        });
       }
     });
 
