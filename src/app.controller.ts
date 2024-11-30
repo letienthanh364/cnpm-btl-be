@@ -1,10 +1,10 @@
 import { Controller, Get, Patch, Body, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
-import { JwtAuthGuard, RolesGuard } from './common/auth/strategy';
+import { JwtAuthGuard, AdminGuard } from './common/auth/strategy';
 import { Role, Roles } from './common/decorator/role';
 
 @Controller('printing-config')
-@UseGuards(JwtAuthGuard, RolesGuard) // Apply guards to all routes
+@UseGuards(JwtAuthGuard, AdminGuard) // Apply guards to all routes
 export class AppController {
   constructor(private readonly appService: AppService) {}
 

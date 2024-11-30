@@ -12,10 +12,17 @@ import { NotifyModule } from 'src/notify/notify.module';
 import { NotifyService } from 'src/notify/notify.service';
 import { AppModule } from 'src/app.module';
 import { AppService } from 'src/app.service';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([Printer, PrintJob, User, File]),
+    PassportModule.register({ defaultStrategy: 'jwt', session: false }),
+    JwtModule.register({
+      secret: process.env.JWT_SECRET_KEY,
+      signOptions: { expiresIn: '1y' },
+    }),
     FileModule,
     NotifyModule,
   ],

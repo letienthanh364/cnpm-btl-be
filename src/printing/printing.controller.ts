@@ -7,6 +7,7 @@ import {
   Patch,
   Post,
   Query,
+  UseGuards,
 } from '@nestjs/common';
 import { PrinterService, PrintJobService } from './printing.service';
 import { PrinterCreateDto } from './dtos/printerDtos/printer.create.dto';
@@ -16,11 +17,13 @@ import { PrintJobCreateDto } from './dtos/printjobDtos/printjob.create.dto';
 import { PrintJobStatus } from 'src/common/decorator/printjob_status';
 import { PrintJobSearchDto } from './dtos/printjobDtos/printjob.search.dto';
 import { PrinterUpdateDto } from './dtos/printerDtos/printer.update.dtp';
+import { AdminGuard, JwtAuthGuard } from 'src/common/auth/strategy';
 
 @Controller('printer')
 export class PrinterController {
   constructor(private readonly printerService: PrinterService) {}
 
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post('')
   async createPrinters(@Body() printers: PrinterCreateDto[]) {
     console.log(printers);
@@ -49,6 +52,7 @@ export class PrinterController {
     return this.printerService.search(searchDto);
   }
 
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Patch(':id')
   async update(
     @Param('id') id: string,
@@ -65,6 +69,7 @@ export class PrintJobController {
     private readonly printerService: PrinterService,
   ) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post('')
   async create(@Body() printjob: PrintJobCreateDto) {
     const newPrintJob = await this.printJobService.createPrintJob(printjob);

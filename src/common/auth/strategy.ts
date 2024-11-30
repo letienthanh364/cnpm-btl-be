@@ -41,7 +41,7 @@ export class LocalStrategy extends PassportStrategy(Strategy) {
 }
 
 @Injectable()
-export class RolesGuard implements CanActivate {
+export class AdminGuard implements CanActivate {
   canActivate(context: ExecutionContext): boolean {
     const request = context.switchToHttp().getRequest();
     const user: User = request.user;

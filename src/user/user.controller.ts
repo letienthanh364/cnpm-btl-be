@@ -12,7 +12,7 @@ import {
 import { UserCreateDto } from './dtos/user.create.dto';
 import { UserLoginDto } from './dtos/user.login.dto';
 import { UserService } from './user.service';
-import { JwtAuthGuard } from 'src/common/auth/strategy';
+import { AdminGuard, JwtAuthGuard } from 'src/common/auth/strategy';
 import { User } from './user.entity';
 import { JwtPayload } from 'src/common/jwt/payload';
 import { Notify } from 'src/notify/notify.entity';
@@ -35,6 +35,7 @@ export class UserController {
     private readonly printjobService: PrintJobService,
   ) {}
 
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Post('create-users')
   async register(@Body() users: UserCreateDto[]) {
     const newUsers = await this.userService.createMultipleUsers(users);
@@ -44,6 +45,7 @@ export class UserController {
     });
   }
 
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Get('list')
   async listUser() {
     const users = await this.userService.list();
@@ -98,7 +100,7 @@ export class UserController {
     return this.userService.addPages(body);
   }
 
-  @UseGuards(JwtAuthGuard)
+  @UseGuards(JwtAuthGuard, AdminGuard)
   @Get(':id')
   async getUserById(@Param('id', new ParseUUIDPipe()) id: string) {
     const user = await this.userService.findOne(id);
