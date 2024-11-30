@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common';
-import { AppController } from './app.controller';
+import { AppController, ReportController } from './app.controller';
 import { AppService } from './app.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { dataSource } from 'ormconfig';
@@ -12,11 +12,11 @@ import { NotifyModule } from './notify/notify.module';
   imports: [
     TypeOrmModule.forRoot(dataSource.options),
     UserModule,
-    PrintingModule,
     FileModule,
     NotifyModule,
+    PrintingModule,
   ],
-  controllers: [AppController],
+  controllers: [AppController, ReportController],
   providers: [AppService],
 })
 export class AppModule {}

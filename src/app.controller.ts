@@ -39,3 +39,16 @@ export class AppController {
     return { message: `Allowed files updated to ${files.join(', ')}` };
   }
 }
+
+@Controller('report') // New prefix 'report'
+@UseGuards(JwtAuthGuard, AdminGuard) // Apply guards to all routes
+export class ReportController {
+  constructor(private readonly appService: AppService) {}
+
+  // Get the report for this month
+  @Get('this-month') // Use a different route path 'this-month'
+  @Roles(Role.Admin) // Only accessible to admin
+  getReportForThisMonth() {
+    return this.appService.generateReport();
+  }
+}
