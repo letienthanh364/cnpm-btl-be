@@ -4,6 +4,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { PrinterSearchDto } from './dtos/printerDtos/printer.search.dto';
 import { PrintJobCreateDto } from './dtos/printjobDtos/printjob.create.dto';
 import { PrintJobStatus } from 'src/common/decorator/printjob_status';
 import { PrintJobSearchDto } from './dtos/printjobDtos/printjob.search.dto';
+import { PrinterUpdateDto } from './dtos/printerDtos/printer.update.dtp';
 
 @Controller('printer')
 export class PrinterController {
@@ -45,6 +47,14 @@ export class PrinterController {
     };
 
     return this.printerService.search(searchDto);
+  }
+
+  @Patch(':id')
+  async update(
+    @Param('id') id: string,
+    @Body() printerData: PrinterUpdateDto,
+  ): Promise<Printer> {
+    return this.printerService.update(id, printerData);
   }
 }
 

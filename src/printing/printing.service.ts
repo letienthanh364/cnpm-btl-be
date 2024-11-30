@@ -1,6 +1,7 @@
 import {
   BadRequestException,
   Injectable,
+  NotFoundException,
   OnApplicationBootstrap,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -20,6 +21,7 @@ import { PrintConfig } from 'src/common/printing/printing.config';
 import { NotifyService } from 'src/notify/notify.service';
 import { NotifyPrintjobCreateDto } from 'src/notify/dtos/notify.create.dto';
 import { AppService } from 'src/app.service';
+import { PrinterUpdateDto } from './dtos/printerDtos/printer.update.dtp';
 
 @Injectable()
 export class PrinterService implements OnApplicationBootstrap {
@@ -41,6 +43,28 @@ export class PrinterService implements OnApplicationBootstrap {
     }
 
     return this.printerRepo.find();
+  }
+
+  async update(
+    printerId: string, // The printer ID you want to update
+    printerCreateDto: PrinterUpdateDto, // The data for the update
+  ): Promise<Printer> {
+    const printer = await this.printerRepo.findOne({
+      where: { id: printerId },
+    });
+
+    if (!printer) {
+      throw new NotFoundException(`Printer with ID ${printerId} not found`);
+    }
+
+    Object.assign(printer, printerCreateDto);
+
+    try {
+      const updatedPrinter = await this.printerRepo.save(printer);
+      return updatedPrinter;
+    } catch (error) {
+      throw new BadRequestException('Failed to update printer');
+    }
   }
 
   // ! Create multiple printers

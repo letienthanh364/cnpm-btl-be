@@ -44,6 +44,15 @@ export class UserController {
     });
   }
 
+  @Get('list')
+  async listUser() {
+    const users = await this.userService.list();
+    return users.map((user) => {
+      const { password, ...res } = user;
+      return res;
+    });
+  }
+
   @Post('login')
   async login(@Body() user: UserLoginDto) {
     return this.userService.login(user);
@@ -73,14 +82,6 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard)
-  @Get(':id')
-  async getUserById(
-    @Param('id', new ParseUUIDPipe()) id: string,
-  ): Promise<User> {
-    return this.userService.findOne(id);
-  }
-
-  @UseGuards(JwtAuthGuard)
   @Get()
   async getCurrentUser(@Req() req: RequestUser): Promise<Partial<User>> {
     console.log(req.user);
@@ -95,5 +96,13 @@ export class UserController {
   @Post('add-pages')
   async addPagesForUser(@Body() body: UserAddPagesDto) {
     return this.userService.addPages(body);
+  }
+
+  @UseGuards(JwtAuthGuard)
+  @Get(':id')
+  async getUserById(@Param('id', new ParseUUIDPipe()) id: string) {
+    const user = await this.userService.findOne(id);
+    const { password, ...res } = user;
+    return res;
   }
 }

@@ -29,6 +29,10 @@ export class UserService {
     return this.userRepo.findOneBy({ id });
   }
 
+  async list(): Promise<User[]> {
+    return this.userRepo.find();
+  }
+
   // ! Create multiple accounts
   async createMultipleUsers(users: UserCreateDto[]): Promise<User[]> {
     const queryRunner = this.dataSource.createQueryRunner();
