@@ -54,11 +54,7 @@ export class AppService {
   // Setter for allowedFiles
   setAllowedFiles(files: string[]): void {
     if (files.length > 0 && files.every((file) => typeof file === 'string')) {
-      files.forEach((file) => {
-        if (!this.allowedFiles.includes(file)) {
-          this.allowedFiles.push(file);
-        }
-      });
+      this.allowedFiles = files; // Replace allowedFiles with the new files
     } else {
       throw new Error('Allowed files must be a non-empty array of strings.');
     }
@@ -89,6 +85,8 @@ export class AppService {
       .addSelect(['user.id', 'user.name'])
       .leftJoin('printjob.printer', 'printer')
       .addSelect(['printer.id', 'printer.location', 'printer.printer_code'])
+      .leftJoin('printjob.file', 'file')
+      .addSelect(['file.id', 'file.name', 'file.path'])
       .where('printjob.created_at >= :startOfMonth', { startOfMonth })
       .getMany();
 

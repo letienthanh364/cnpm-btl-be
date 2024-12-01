@@ -22,6 +22,7 @@ import { NotifyService } from 'src/notify/notify.service';
 import { NotifyPrintjobCreateDto } from 'src/notify/dtos/notify.create.dto';
 import { AppService } from 'src/app.service';
 import { PrinterUpdateDto } from './dtos/printerDtos/printer.update.dtp';
+import { PrintJobStatus } from 'src/common/decorator/printjob_status';
 
 @Injectable()
 export class PrinterService implements OnApplicationBootstrap {
@@ -210,6 +211,10 @@ export class PrinterService implements OnApplicationBootstrap {
             continue;
           }
 
+          // Step 1: Update the print job status to 'Processing' before starting the print process
+          printJob.print_status = PrintJobStatus.Processing;
+          await queryRunner.manager.save(printJob); // Save the updated print job status
+
           // Simulate processing
           console.log(
             `Printer ${updatedPrinter.printer_code} is printing ${printJob.file.name}`,
@@ -225,7 +230,7 @@ export class PrinterService implements OnApplicationBootstrap {
 
           await new Promise((resolve) => setTimeout(resolve, processingTime));
 
-          // ? Remove the job from the queue and update the status
+          // Step 2: Remove the job from the queue and update the status to 'Complete'
           const queryRunner2 = this.dataSource.createQueryRunner();
           await queryRunner2.connect();
           await queryRunner2.startTransaction();
@@ -249,9 +254,13 @@ export class PrinterService implements OnApplicationBootstrap {
             );
           }
 
+          // Step 3: Update the print job status to 'Complete' after printing
+          printJob.print_status = PrintJobStatus.Complete;
+          const savedPrintjob = await queryRunner2.manager.save(printJob); // Save the updated print job status
+          console.log(savedPrintjob);
           await queryRunner2.commitTransaction();
 
-          // ? Notify the user
+          // Notify the user
           const notifyPrintjob: NotifyPrintjobCreateDto = {
             message: `Your document ${printJob.file.name} is printed by printer at ${printJob.printer.location}`,
             receiver_ids: [printJob.user.id],
@@ -378,8 +387,10 @@ export class PrintJobService {
 
     query
       .leftJoinAndSelect('printjob.file', 'file')
-      .leftJoinAndSelect('printjob.user', 'user')
-      .leftJoinAndSelect('printjob.printer', 'printer');
+      .leftJoin('printjob.user', 'user')
+      .addSelect(['user.id', 'user.name'])
+      .leftJoin('printjob.printer', 'printer')
+      .addSelect(['printer.id', 'printer.printer_code', 'printer.location']);
 
     // Add filters dynamically based on the query DTO
     if (data.user_id) {
@@ -413,6 +424,9 @@ export class PrintJobService {
         end: endDate,
       });
     }
+
+    // Add ordering by created_at in descending order (latest first)
+    query.orderBy('printjob.created_at', 'DESC');
 
     // Execute the query and return results
     return query.getMany();
