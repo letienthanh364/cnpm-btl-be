@@ -81,7 +81,9 @@ export class FileService {
     }
 
     // Extract the fileId from the file.path (Google Drive URL)
-    const match = file.path.match(/id=([a-zA-Z0-9_-]+)/);
+    const match = file.path.match(
+      /https:\/\/drive\.google\.com\/file\/d\/([a-zA-Z0-9_-]+)/,
+    );
     if (!match || !match[1]) {
       throw new NotFoundException(
         `Invalid Google Drive file URL: ${file.path}`,
@@ -89,10 +91,10 @@ export class FileService {
     }
     const extractedFileId = match[1];
 
-    // Delete the file from Google Drive
-    await this.googleDriveService.deleteFile(extractedFileId);
-
     // Delete the metadata from the database
     await this.fileRepository.remove(file);
+
+    // Delete the file from Google Drive
+    await this.googleDriveService.deleteFile(extractedFileId);
   }
 }
