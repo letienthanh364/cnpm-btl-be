@@ -58,6 +58,8 @@ export class NotifyService {
       });
     }
 
+    query.orderBy('notify.created_at', 'DESC'); // Sort by creation date
+
     return query.getMany();
   }
 
@@ -66,6 +68,17 @@ export class NotifyService {
       .createQueryBuilder('notify')
       .leftJoin('notify.receivers', 'receivers') // Join the receivers relation
       .where('receivers.id = :userId', { userId }) // Filter by userId
+      .orderBy('notify.created_at', 'DESC'); // Sort by creation date
+
+    return await query.getMany();
+  }
+
+  async listGeneralNotificationsForUser(userId: string): Promise<Notify[]> {
+    const query = this.notifyRepo
+      .createQueryBuilder('notify')
+      .leftJoin('notify.receivers', 'receivers') // Join the receivers relation
+      .where('notify.printjob IS NULL') // Ensure printjob is null
+      .andWhere('receivers.id = :userId', { userId }) // Filter by userId
       .orderBy('notify.created_at', 'DESC'); // Sort by creation date
 
     return await query.getMany();

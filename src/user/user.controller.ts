@@ -70,6 +70,15 @@ export class UserController {
   }
 
   @UseGuards(JwtAuthGuard)
+  @Get('general-notifications')
+  async getGeneralNotifications(
+    @CurrentUser() user: JwtPayload,
+  ): Promise<Notify[]> {
+    const userId = user.id; // Get the user's ID from the JWT payload
+    return this.notifyService.listGeneralNotificationsForUser(userId);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('printlogs')
   async listPrintlogs(
     @Req() req: RequestUser,
@@ -86,7 +95,6 @@ export class UserController {
   @UseGuards(JwtAuthGuard)
   @Get()
   async getCurrentUser(@Req() req: RequestUser): Promise<Partial<User>> {
-    console.log(req.user);
     const userId = req.user.id;
     const user = await this.userService.findOne(userId);
 

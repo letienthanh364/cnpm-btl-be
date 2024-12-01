@@ -26,7 +26,6 @@ export class PrinterController {
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Post('')
   async createPrinters(@Body() printers: PrinterCreateDto[]) {
-    console.log(printers);
     return this.printerService.createPrinters(printers);
   }
 

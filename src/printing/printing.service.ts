@@ -124,11 +124,6 @@ export class PrinterService implements OnApplicationBootstrap {
     const positionInQueue = printer.printjob_queue.length;
     printer.printjob_queue.push(printJob.id);
 
-    // If the printer is available, mark it as busy before processing starts
-    if (printer.status === PrinterStatus.Available) {
-      printer.status = PrinterStatus.Busy;
-    }
-
     // Save the updated printer entity
     await this.printerRepo.save(printer);
 
@@ -151,7 +146,7 @@ export class PrinterService implements OnApplicationBootstrap {
     };
 
     // Start processing the queue if not already processing
-    if (printer.status === PrinterStatus.Busy && positionInQueue === 0) {
+    if (printer.status === PrinterStatus.Available && positionInQueue === 0) {
       this.startProcessingQueue(printerId);
     }
 
@@ -162,7 +157,9 @@ export class PrinterService implements OnApplicationBootstrap {
   async onApplicationBootstrap() {
     const printers = await this.printerRepo.find();
     printers.forEach((printer) => {
-      this.startProcessingQueue(printer.id); // Start queue processing for each printer
+      if (printer.status != PrinterStatus.InMaintain) {
+        this.startProcessingQueue(printer.id); // Start queue processing for each printer
+      }
     });
   }
 
@@ -257,7 +254,6 @@ export class PrinterService implements OnApplicationBootstrap {
           // Step 3: Update the print job status to 'Complete' after printing
           printJob.print_status = PrintJobStatus.Complete;
           const savedPrintjob = await queryRunner2.manager.save(printJob); // Save the updated print job status
-          console.log(savedPrintjob);
           await queryRunner2.commitTransaction();
 
           // Notify the user
