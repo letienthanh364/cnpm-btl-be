@@ -35,9 +35,18 @@ export class UserController {
     private readonly printjobService: PrintJobService,
   ) {}
 
+  @Post('register')
+  async resgiter(@Body() user: UserCreateDto) {
+    const newUsers = await this.userService.createMultipleUsers([user]);
+    return newUsers.map((user) => {
+      const { password, ...res } = user;
+      return res;
+    });
+  }
+
   @UseGuards(JwtAuthGuard, AdminGuard)
   @Post('create-users')
-  async register(@Body() users: UserCreateDto[]) {
+  async createUsers(@Body() users: UserCreateDto[]) {
     const newUsers = await this.userService.createMultipleUsers(users);
     return newUsers.map((user) => {
       const { password, ...res } = user;
